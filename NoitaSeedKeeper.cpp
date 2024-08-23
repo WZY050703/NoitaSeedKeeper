@@ -78,7 +78,6 @@ std::string filesearch(std::string model, std::string item)
         int n = data.find("," + item + ",") + 1;
         if (n - 1 == std::string::npos)
         {
-            // std::cout << "Str not exit." << std::endl;
             return "FINDERR:-1";
         }
         std::string output_b, output_a; // before,after
@@ -98,27 +97,32 @@ std::string filesearch(std::string model, std::string item)
         return reverse(output_b.size(), output_b) + output_a;
     }
     if (model == "3")
-    { // 描述搜索
-        int n = data.find(item);
-        if (n - 1 == std::string::npos)
+    {                                 // 描述搜索
+        int pos = data.find(item, 0); // 位置
+        bool isfind = false;
+        std::string restrings;
+        while (pos != std::string::npos) // 一直找
         {
-            // std::cout << "Str not exit." << std::endl;
+            isfind = true;
+            std::string output_b, output_a; // before,after
+            int i = pos;
+            while (data[i] != ';') // 后半
+            {
+                output_a = output_a + data[i];
+                i = i + 1;
+            }
+            int j = pos - 1;
+            while (data[j] != ';') // 前半
+            {
+                output_b = output_b + data[j];
+                j = j - 1;
+            }
+            restrings += (reverse(output_b.size(), output_b) + output_a) + "\n";
+            pos = data.find(item, pos + 1); // 从下一个字符开始找
+        }
+        if (!isfind)
             return "FINDERR:-1";
-        }
-        std::string output_b, output_a; // before,after
-        int i = n;
-        while (data[i] != ';')
-        {
-            output_a = output_a + data[i];
-            i = i + 1;
-        }
-        int j = n - 1;
-        while (data[j] != ';')
-        {
-            output_b = output_b + data[j];
-            j = j - 1;
-        }
-        return reverse(output_b.size(), output_b) + output_a;
+        return restrings;
     }
     return "FINDERR:-1";
 }
@@ -203,7 +207,7 @@ std::unique_ptr<std::string[]> instaer(int &argc) // 输入格式化
 void help()
 {
     std::cout << "NoitaSeedKeeper v0.1.0" << std::endl;
-    std::cout << "Options:\n    -D/-debug                       list all argvargument count\n    -d/-delet [ID]                  delet a seed by it's ID\n    -f/find [Model(1/2/3)] [Item]   find a seed\n        Model 1: By ID\n        Model 2: By seed            (Must be complete)\n        Model 3: By description     (Support word search)\n    -h/-help                        out put this page\n    -l/-list                        list all seeds\n    -s/-save [seed] [description]   save a seed(Auto-configuration ID)" << std::endl;
+    std::cout << "Options:\n    -D/-debug                       list all argvargument count\n    -d/-delet [ID]                  delet a seed by it's ID\n    -f/find [Model(1/2/3)] [Item]   find a seed\n        Model 1: By ID\n        Model 2: By seed            (Must be complete)\n        Model 3: By description     (Support word search)\n    -h/-help                        out put this page\n    -l/-list                        list all seeds\n    -s/-save [seed] [description]   save a seed(Auto-configuration ID)\n    -c/-cal  [seed]                 find a seed(by web)" << std::endl;
 }
 
 void save(std::string seed, std::string config)
@@ -302,6 +306,13 @@ void delet(std::string num)
     std::cout << "Seed ID." + num + " has been delet." << std::endl;
 }
 
+void calculation(std::string seed)
+{
+    std::string webc="start https://dev.noitool.com/info?seed=" + seed;
+    std::cout << "https://dev.noitool.com/info?seed=" + seed << std::endl;
+    system(webc.c_str());
+}
+
 // 进程循环
 int RedCommand(int argc, std::unique_ptr<std::string[]> argv) // 公用的命令解析器
 {
@@ -320,9 +331,9 @@ int RedCommand(int argc, std::unique_ptr<std::string[]> argv) // 公用的命令
             help();
         if (argv[i] == std::string("-l") or argv[i] == std::string("-list"))
             list();
-        if (i < argc - 1 && (argv[i] == std::string("-s") or argv[i] == std::string("-save")))
+        if (argv[i] == std::string("-s") or argv[i] == std::string("-save"))
         {
-            if (argv[i + 1].find("-") == std::string::npos)
+            if (i + 1 < argc && argv[i + 1].find("-") == std::string::npos)
             {
                 i = i + 1;
                 if (i + 1 < argc && argv[i + 1].find("-") == std::string::npos)
@@ -333,22 +344,38 @@ int RedCommand(int argc, std::unique_ptr<std::string[]> argv) // 公用的命令
                 else
                     save(argv[i], "none");
             }
+            else
+                std::cout << "CommandErr:Parameters are missing\n";
         }
-        if (i < argc - 2 && (argv[i] == std::string("-f") or argv[i] == std::string("-find")))
+        if (argv[i] == std::string("-f") or argv[i] == std::string("-find"))
         {
-            if (argv[i + 1].find("-") == std::string::npos && argv[i + 2].find("-") == std::string::npos)
+            if (i < argc - 2 && argv[i + 1].find("-") == std::string::npos && argv[i + 2].find("-") == std::string::npos)
             {
                 find(argv[i + 1], argv[i + 2]);
                 i = i + 2;
             }
+            else
+                std::cout << "CommandErr:Parameters are missing\n";
         }
-        if (i < argc - 1 && (argv[i] == std::string("-d") or argv[i] == std::string("-delet")))
+        if ((argv[i] == std::string("-d") or argv[i] == std::string("-delet")))
         {
-            if (argv[i + 1].find("-") == std::string::npos)
+            if (i < argc - 1 && argv[i + 1].find("-") == std::string::npos)
             {
                 i = i + 1;
                 delet(argv[i]);
             }
+            else
+                std::cout << "CommandErr:Parameters are missing\n";
+        }
+        if ((argv[i] == std::string("-c") or argv[i] == std::string("-cal")))
+        {
+            if (i < argc - 1 && argv[i + 1].find("-") == std::string::npos)
+            {
+                i = i + 1;
+                calculation(argv[i]);
+            }
+            else
+                std::cout << "CommandErr:Parameters are missing\n";
         }
     }
     if (isexit) // 通过返回值判断是否退出
