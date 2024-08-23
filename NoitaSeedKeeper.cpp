@@ -1,16 +1,38 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-using namespace std;
+#include <random>
+#include <chrono>
+#include <memory>
 
 // 功能函数
+std::string IDGet_time() // 根据时间的ID生成器
+{
+    auto seedtime = std::chrono::system_clock::now().time_since_epoch().count();
+    std::mt19937 rng(seedtime); // 随机引擎
+    std::string ID;
+    for (int i = 0; i < 5; i++)
+    {
+        int tmp = rng() % 36;
+        if (tmp < 10)
+        {
+            ID = ID + char(48 + tmp);
+        }
+        else
+        {
+            ID = ID + char(97 + tmp - 10);
+        }
+    }
+    return ID;
+}
+
 bool if_file_exist()
 {
-    fstream f;
+    std::fstream f;
     f.open("seeds.ini");
     if (!f.good()) // 检查存在
     {
-        // cout<<"Not exit"<<endl;
+        // std::cout<<"Not exit"<<std::endl;
         f.close();
         return false;
     }
@@ -18,9 +40,9 @@ bool if_file_exist()
     return true;
 }
 
-string reverse(int len, string str)
+std::string reverse(int len, std::string str) // 字符串反转
 {
-    string newstr;
+    std::string newstr;
     for (int i = len - 1; i >= 0; i--)
     {
         newstr = newstr + str[i];
@@ -28,22 +50,22 @@ string reverse(int len, string str)
     return newstr;
 }
 
-string filesearch(string model, string item)
+std::string filesearch(std::string model, std::string item)
 {
-    fstream f;
-    string data;
-    f.open("seeds.ini", ios::in);
+    std::fstream f;
+    std::string data;
+    f.open("seeds.ini", std::ios::in);
     f >> data;
     f.close();
     if (model == "1")
-    { // 编号模式
+    { // ID模式
         int i = data.find(";" + item + ",") + 1;
-        if (i - 1 == string::npos)
+        if (i - 1 == std::string::npos)
         {
-            // cout << "Str not exit." << endl;
+            // std::cout << "Str not exit." << std::endl;
             return "FINDERR:-1";
         }
-        string backdata;
+        std::string backdata;
         while (data[i] != ';')
         {
             backdata = backdata + data[i];
@@ -54,12 +76,12 @@ string filesearch(string model, string item)
     if (model == "2")
     { // 种子搜索
         int n = data.find("," + item + ",") + 1;
-        if (n - 1 == string::npos)
+        if (n - 1 == std::string::npos)
         {
-            // cout << "Str not exit." << endl;
+            // std::cout << "Str not exit." << std::endl;
             return "FINDERR:-1";
         }
-        string output_b, output_a; // before,after
+        std::string output_b, output_a; // before,after
         int i = n;
         while (data[i] != ';')
         {
@@ -78,12 +100,12 @@ string filesearch(string model, string item)
     if (model == "3")
     { // 描述搜索
         int n = data.find(item);
-        if (n - 1 == string::npos)
+        if (n - 1 == std::string::npos)
         {
-            // cout << "Str not exit." << endl;
+            // std::cout << "Str not exit." << std::endl;
             return "FINDERR:-1";
         }
-        string output_b, output_a; // before,after
+        std::string output_b, output_a; // before,after
         int i = n;
         while (data[i] != ';')
         {
@@ -103,133 +125,170 @@ string filesearch(string model, string item)
 
 int save_init()
 {
-    bool filex = if_file_exist();
-    int number = 0;
-    fstream f;
-    if (filex) // 找编号
+    if (!if_file_exist()) // 不存在就创建
     {
-        f.open("seeds.ini", ios::in);
-        string data;
-        f >> data;
-        int i = data.size() - 2;
-        while (i >= 0) // 倒着跑
-        {
-            if (';' == data[i]) // 读到分隔符号
-            {
-                i = i + 1;
-                string tmp;
-                while (data[i] != ',')
-                {
-                    tmp = tmp + data[i];
-                    i = i + 1;
-                }
-                // cout<<tmp<<endl;
-                number = stoi(tmp);
-                // cout << tmp << ";" << number << endl;
-                break;
-            }
-            i = i - 1;
-        }
-
-        // cout<<data;
-        f.close();
-    }
-    else
-    {
-        f.open("seeds.ini", ios::app);
+        std::fstream f;
+        f.open("seeds.ini", std::ios::app);
         f << ";";
         f.close();
+        return 1;
     }
-    return number;
+    return 0;
 }
 
+std::unique_ptr<std::string[]> instaer(int &argc) // 输入格式化
+{
+    // 输入
+    std::string input;
+    std::cout << "NSK>";
+    std::getline(std::cin, input);
+    if (!input.empty() && '\n' == input.back())
+    {
+        input.pop_back();
+    }
+    // 数个数
+    int num = 0, len = input.size();
+    bool ischar = false;
+    for (int i = 0; i < len; i++)
+    {
+        int ch = int(input[i]);
+        if ((int('A') <= ch && ch <= int('Z')) ||
+            (int('a') <= ch && ch <= int('z')) ||
+            (int('0') <= ch && ch <= int('9')))
+        {
+            ischar = true;
+        }
+        if (' ' == input[i] && true == ischar)
+        {
+            num++;
+            ischar = false;
+        }
+    }
+    if (ischar)
+    {
+        num++;
+        ischar = false;
+    }
+    if (num == 0)
+    {
+        std::unique_ptr<std::string[]> re(new std::string[1]);
+        re[0] = "-1";
+        return re;
+    }
+    // 分割
+    int floor = 0;
+    // std::string *commands = new std::string[num];
+    std::unique_ptr<std::string[]> commands(new std::string[num]); // 使用智能指针自动回收
+    for (int i = 0; i < len; i++)
+    {
+        int ch = int(input[i]);
+        if ((int('A') <= ch && ch <= int('Z')) ||
+            (int('a') <= ch && ch <= int('z')) ||
+            (int('0') <= ch && ch <= int('9')) ||
+            int('-') == ch)
+        {
+            commands[floor] += input[i];
+            ischar = true;
+        }
+        if (' ' == input[i] && true == ischar)
+        {
+            floor++;
+            ischar = false;
+        }
+    }
+    argc = num;
+    return commands;
+}
 // 接口实现函数↓
 void help()
 {
-    cout << "NoitaSeedKeeper v0.1.0" << endl;
-    cout<<"Options:\n    -D/-debug                       list all argvargument count\n    -d/-delet [ID]                  delet a seed by it's ID\n    -f/find [Model(1/2/3)] [Item]   find a seed\n        Model 1: By ID\n        Model 2: By seed            (Must be complete)\n        Model 3: By description     (Support word search)\n    -h/-help                        out put this page\n    -l/-list                        list all seeds\n    -s/-save [seed] [description]   save a seed(Auto-configuration ID)"<<endl;
+    std::cout << "NoitaSeedKeeper v0.1.0" << std::endl;
+    std::cout << "Options:\n    -D/-debug                       list all argvargument count\n    -d/-delet [ID]                  delet a seed by it's ID\n    -f/find [Model(1/2/3)] [Item]   find a seed\n        Model 1: By ID\n        Model 2: By seed            (Must be complete)\n        Model 3: By description     (Support word search)\n    -h/-help                        out put this page\n    -l/-list                        list all seeds\n    -s/-save [seed] [description]   save a seed(Auto-configuration ID)" << std::endl;
 }
 
-void save(string seed, string config)
+void save(std::string seed, std::string config)
 {
-    int number = save_init(); // 输出文件初始化和获取编号
+    save_init();                   // 输出文件初始化
+    std::string ID = IDGet_time(); // 获取ID
 
     if (filesearch("2", seed) != "FINDERR:-1")
     {
-        cout << "seed exsit." << endl;
+        std::cout << "seed exsit." << std::endl;
         return;
     }
 
-    fstream f;
-    f.open("seeds.ini", ios::app);
-    f << number + 1 << "," << seed << "," << config << ";";
+    std::fstream f;
+    f.open("seeds.ini", std::ios::app);
+    f << ID << "," << seed << "," << config << ";";
     f.close();
-    cout << "seed ID." << number + 1 << " has been saved" << endl;
+    std::cout << "seed ID." << ID << " has been saved" << std::endl;
 }
 
-void find(string model, string item)
+void find(std::string model, std::string item)
 {
     if (!if_file_exist())
     {
-        cout << "ERROR:File ont exist" << endl;
+        std::cout << "ERROR:File ont exist" << std::endl;
         return;
     }
     if (model == "1" or model == "2" or model == "3")
     {
-        string ret = filesearch(model, item);
+        std::string ret = filesearch(model, item);
         if ("FINDERR:-1" == ret)
-            cout << "Not exist." << endl;
+            std::cout << "Not exist." << std::endl;
         else
-            cout << ret << endl;
+            std::cout << ret << std::endl;
     }
     else
-        cout << "ERROR:Don't have this model: " + model << endl;
+        std::cout << "ERROR:Don't have this model: " + model << std::endl;
 }
 
 void list()
 {
     if (!if_file_exist())
     {
-        cout << "ERROR:File ont exist" << endl;
+        std::cout << "ERROR:File ont exist" << std::endl;
         return;
     }
     int len = 0;
-    fstream f;
-    string data;
+    std::fstream f;
+    std::string data;
 
-    f.open("seeds.ini", ios::in);
+    f.open("seeds.ini", std::ios::in);
     f >> data;
     len = data.size();
     for (int i = 1; i < len; i++) // 跳过第一个分隔符
     {
-        cout << data[i];
+        std::cout << data[i];
         if (';' == data[i])
         {
-            cout << endl;
+            std::cout << std::endl;
         }
     }
     f.close();
 }
 
-void delet(string num)
+void delet(std::string num)
 {
     if (!if_file_exist())
     {
-        cout << "ERROR:File ont exist" << endl;
+        std::cout << "ERROR:File ont exist" << std::endl;
         return;
     }
 
-    fstream f;
-    string data;
-    f.open("seeds.ini", ios::in);
+    std::fstream f;
+    std::string data;
+    f.open("seeds.ini", std::ios::in);
     f >> data;
     f.close();
     int n = data.find(";" + num + ",") + 1, len = data.size();
-    if (n - 1 == string::npos)
-        cout << "Seed ID." + num + " not exit." << endl;
-
+    if (n - 1 == std::string::npos)
+    {
+        std::cout << "Seed ID." + num + " not exit." << std::endl;
+        return;
+    }
     int j = 0;
-    string backdata;
+    std::string backdata;
     for (j = 0; j < n; j++)
         backdata = backdata + data[j];
     while (data[j] != ';')
@@ -237,50 +296,93 @@ void delet(string num)
     j = j + 1;
     for (j; j < len; j++)
         backdata = backdata + data[j];
-    f.open("seeds.ini", ios::out);
+    f.open("seeds.ini", std::ios::out);
     f << backdata;
     f.close();
-    cout << "Seed ID." + num + " has been delet." << endl;
+    std::cout << "Seed ID." + num + " has been delet." << std::endl;
+}
+
+// 进程循环
+int RedCommand(int argc, std::unique_ptr<std::string[]> argv) // 公用的命令解析器
+{
+    bool isexit = false;
+    for (int i = 0; i < argc; i++) // 读选项
+    {
+        if (argv[i] == std::string("-D") or argv[i] == std::string("-debug"))
+        {
+            std::cout << "---Debug---\n";
+            for (int i = 0; i < argc; ++i) // 检查输入
+                std::cout << i << "," << argv[i] << std::endl;
+        }
+        if (argv[i] == std::string("-exit"))
+            isexit = true;
+        if (argv[i] == std::string("-h") or argv[i] == std::string("-help"))
+            help();
+        if (argv[i] == std::string("-l") or argv[i] == std::string("-list"))
+            list();
+        if (i < argc - 1 && (argv[i] == std::string("-s") or argv[i] == std::string("-save")))
+        {
+            if (argv[i + 1].find("-") == std::string::npos)
+            {
+                i = i + 1;
+                if (i + 1 < argc && argv[i + 1].find("-") == std::string::npos)
+                {
+                    save(argv[i], argv[i + 1]);
+                    i = 1 + i;
+                }
+                else
+                    save(argv[i], "none");
+            }
+        }
+        if (i < argc - 2 && (argv[i] == std::string("-f") or argv[i] == std::string("-find")))
+        {
+            if (argv[i + 1].find("-") == std::string::npos && argv[i + 2].find("-") == std::string::npos)
+            {
+                find(argv[i + 1], argv[i + 2]);
+                i = i + 2;
+            }
+        }
+        if (i < argc - 1 && (argv[i] == std::string("-d") or argv[i] == std::string("-delet")))
+        {
+            if (argv[i + 1].find("-") == std::string::npos)
+            {
+                i = i + 1;
+                delet(argv[i]);
+            }
+        }
+    }
+    if (isexit) // 通过返回值判断是否退出
+        return -1;
+    else
+        return 0;
+}
+
+int RunLoop()
+{
+    int reexit = 0;
+    while (reexit == 0) // 主循环
+    {
+        int argc;
+        auto argv = instaer(argc);
+        reexit = RedCommand(argc, std::move(argv)); // 通过返回值判断是否退出
+    }
+    return 0;
 }
 
 // 主函数
 int main(int argc, char **argv)
 {
-    cout << "start" << endl;
-    if (argc <= 1) // 没输入
-        help();
-    // cout<<"1"<<endl;
-    for (int i = 0; i < argc; i++) // 读选项
+    std::cout << "start" << std::endl;
+    if (argc <= 1) // 没初始命令输入
+        RunLoop();
+    else
     {
-        // cout<<"i:"<<i<<endl;
-        if (argv[i] == string("-D") or argv[i] == string("-debug"))
+        std::unique_ptr<std::string[]> commands(new std::string[argc]); // 格式化
+        for (int i = 0; i < argc; i++)
         {
-            // cout<<"deb"<<endl;
-            for (int i = 0; i < argc; ++i) // 检查输入
-                cout << i << "," << argv[i] << endl;
+            commands[i] = argv[i];
         }
-        if (argv[i] == string("-h") or argv[i] == string("-help"))
-            help();
-        if (argv[i] == string("-s") or argv[i] == string("-save"))
-        {
-            // cout<<"se"<<endl;
-            i = i + 1;
-            save(argv[i], argv[i + 1]);
-            i = 1 + i;
-        }
-        if (argv[i] == string("-l") or argv[i] == string("-list"))
-            list();
-        if (argv[i] == string("-f") or argv[i] == string("-find"))
-        {
-            i = i + 1;
-            find(argv[i], argv[i + 1]);
-            i = i + 1;
-        }
-        if (argv[i] == string("-d") or argv[i] == string("-delet"))
-        {
-            i = i + 1;
-            delet(argv[i]);
-        }
+        RedCommand(argc, std::move(commands));
     }
     return 0;
 }
