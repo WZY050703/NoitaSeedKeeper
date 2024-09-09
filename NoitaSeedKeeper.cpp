@@ -207,7 +207,7 @@ std::unique_ptr<std::string[]> instaer(int &argc) // 输入格式化
 void help()
 {
     std::cout << "NoitaSeedKeeper v0.1.0" << std::endl;
-    std::cout << "Options:\n    -D/-debug                       list all argvargument count\n    -d/-delet [ID]                  delet a seed by it's ID\n    -f/find [Model(1/2/3)] [Item]   find a seed\n        Model 1: By ID\n        Model 2: By seed            (Must be complete)\n        Model 3: By description     (Support word search)\n    -h/-help                        out put this page\n    -l/-list                        list all seeds\n    -s/-save [seed] [description]   save a seed(Auto-configuration ID)\n    -c/-cal  [seed]                 find a seed(by web)" << std::endl;
+    std::cout << "Options:\n    -D/-debug                       list all argvargument count\n    -d/-delet [ID]                  delet a seed by it's ID\n    -f/find [Model(1/2/3)] [Item]   find a seed\n        Model 1: By ID\n        Model 2: By seed            (Must be complete)\n        Model 3: By description     (Support word search)\n    -h/-help                        out put this page\n    -l/-list                        list all seeds\n    -s/-save [seed] [description]   save a seed(Auto-configuration ID)\n    -c/-cal  [seed]                 find a seed(by web)\n    -exit                         exit" << std::endl;
 }
 
 void save(std::string seed, std::string config)
